@@ -1,0 +1,15 @@
+# Environnement virtuel
+venv/
+
+# Caches Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers de modèles
+*.pth
+
+# Images générées (si tu ne veux pas les versionner)
+Figure_*.png
