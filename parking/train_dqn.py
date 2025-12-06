@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt  # pour les graphiques
+import matplotlib.pyplot as plt  
 
 from .env_bataille import ParkingEnv
 from .dqn_agent import DQN, ReplayBuffer, create_optimizer
@@ -20,9 +20,9 @@ def train_dqn(
     epsilon_decay=100_000,
     target_update_freq=20,
     buffer_capacity=100_000,
-    convergence_window=100,      # fenêtre de moyenne glissante (épisodes)
-    convergence_tol=1e-2,        # tolérance *relative* sur la variation (ex : 1e-2 = 1 %)
-    convergence_patience=1000,   # nb de fois de suite avant arrêt
+    convergence_window=100,      
+    convergence_tol=1e-2,        
+    convergence_patience=1000,   
 ):
     """
     Entraîne un agent DQN sur ParkingEnv (places en bataille, 3 actions).
@@ -38,8 +38,8 @@ def train_dqn(
     """
     env = ParkingEnv()
     state = env.reset()
-    state_dim = len(state)       # s'adapte à ton état (avec toutes les distances)
-    action_dim = 3               # 0: gauche+avance, 1: tout droit, 2: droite+avance
+    state_dim = len(state)       
+    action_dim = 3               
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Entraînement sur :", device)
@@ -245,11 +245,21 @@ def train_dqn(
     return policy_net, episode_rewards
 
 
-def watch_trained_agent(model_path="dqn_parking.pth", n_episodes=3):
+def watch_trained_agent(
+    model_path="dqn_parking.pth",
+    n_episodes=3,
+    save_gif=False,
+    gif_path="assets/demo.gif",
+    max_frames=600
+):
     """
     Regarde l'agent entraîné jouer, avec rendu Pygame.
+    Si save_gif=True, enregistre aussi un GIF de la démo.
     """
     import pygame
+    import numpy as np
+    import imageio
+    import os
 
     env = ParkingEnv()
     env._init_pygame()
@@ -257,11 +267,13 @@ def watch_trained_agent(model_path="dqn_parking.pth", n_episodes=3):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_state = env.reset()
     state_dim = len(dummy_state)
-    action_dim = 3   # même chose : 0,1,2 uniquement
+    action_dim = 3   # 0,1,2
 
     policy_net = DQN(state_dim, action_dim).to(device)
     policy_net.load_state_dict(torch.load(model_path, map_location=device))
     policy_net.eval()
+
+    frames = []  # pour le GIF
 
     for ep in range(n_episodes):
         state = env.reset()
@@ -273,6 +285,15 @@ def watch_trained_agent(model_path="dqn_parking.pth", n_episodes=3):
             env.render()
             pygame.time.delay(30)
 
+            # --- capture pour GIF (après le rendu) ---
+            if save_gif and len(frames) < max_frames:
+                surface = pygame.display.get_surface()
+                if surface is not None:
+                    frame = pygame.surfarray.array3d(surface)  # (W, H, 3)
+                    frame = np.transpose(frame, (1, 0, 2))     # -> (H, W, 3)
+                    frames.append(frame)
+            # ------------------------------------------
+
             with torch.no_grad():
                 s = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
                 q_values = policy_net(s)
@@ -282,6 +303,12 @@ def watch_trained_agent(model_path="dqn_parking.pth", n_episodes=3):
             total_reward += reward
 
         print(f"Reward épisode démo: {total_reward:.1f}")
+
+    # Sauvegarde du GIF à la fin
+    if save_gif and len(frames) > 0:
+        os.makedirs(os.path.dirname(gif_path), exist_ok=True)
+        imageio.mimsave(gif_path, frames, fps=10)
+        print(f"GIF sauvegardé dans {gif_path}")
 
     pygame.quit()
 
