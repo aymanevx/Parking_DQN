@@ -17,7 +17,7 @@ class ParkingEnv:
     - Presque toutes les places sont occupées par des voitures garées
     - Une place vide = objectif à atteindre
     - Ta voiture part dans l'allée centrale, orientée vers le haut
-    - À chaque partie, la place vide change d'endroit (sauf si tu fixes l'index)
+    - À chaque partie, la place vide change d'endroit
     """
 
     def __init__(self):
